@@ -4,8 +4,14 @@ import os
 
 app = Flask(__name__)
 
-import AF1_1.routes 
-from AF1_1.subEnumAPI import *
+app.config["cachePath"] = os.path.join( os.getcwd(),"Websites")
+
+if not os.path.isdir(app.config["cachePath"]):
+	os.path.mkdir(app.config["cachePath"])
+
+import routes 
+from subEnumAPI import *
+import apiRoutes
 
 @app.route("/", methods=['GET'])
 def landing():
@@ -44,6 +50,7 @@ def HTML():
 @app.route("/Attack",methods=["POST"])
 def Attack():
 	domain,subDomains,httpDomains,options = None,None,None,None
+	print("in Attack")
 	if request.json:
 		print(request.json)
 		if "domain" in request.json:

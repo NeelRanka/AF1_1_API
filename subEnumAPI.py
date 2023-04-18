@@ -1,44 +1,38 @@
+import routes.utility as utility
 import subprocess
 import os
 import sys
 import uuid
 from flask import make_response,jsonify
 from zipfile import ZipFile
+import Tools.merging_technologies
+import Tools.naabuParser
+import utility
+from __main__ import app
 
 
 def initialize(domain):
-	filepath = os.path.join( os.getcwd(), "Websites/" ) 
-	dirname = domain.split(".")[0].lower()
-	filename =  dirname + ".txt"
-	httpDomainsFile=""
-	if not os.path.exists(filepath+dirname):
-		os.mkdir(filepath+dirname)
-		print(f"Created the directory {filepath+dirname}")
-		fileloc = filepath+dirname+"/"   #shows the directory
-		print(fileloc)
+	# filepath = os.path.join( os.getcwd(), "Websites/" ) 
+	# dirname = domain.split(".")[0].lower()
+	# filename =  dirname + ".txt"
+	# httpDomainsFile=""
+	# if not os.path.exists(filepath+dirname):
+	# 	os.mkdir(filepath+dirname)
+	# 	print(f"Created the directory {filepath+dirname}")
+	# 	fileloc = filepath+dirname+"/"   #shows the directory
+	# 	print(fileloc)
+	# else:
+	# 	fileloc = filepath+dirname+"/"
+	# return(fileloc)
+
+	# Create folder of a domain
+	folderName = utility.getFolderNameFromDomain(domain)
+	if os.path.isdir(os.path.join(app.config['cachePath'], folderName)):
+		print("Folder Already Exists, skipping folder Generation")
 	else:
-		fileloc = filepath+dirname+"/"
-	return(fileloc)
-
-"""
-def sublist3r():
-	print("Running Sublist3r")
-	print("-------------------")
-	command = "python3 "+basePath+"/Sublist3r/sublist3r.py -d "+domain+" -o " + fileloc + filename 
-	sublist3r = os.popen(command).read()
-	print(sublist3r)
-
-
-def KnockPy():              ===> Needs to be processed IP + domains and all
-	print("Running KnockPy")
-	os.chdir(basePath+"/KnockPy")   #changing the current working directory
-
-	#print(os.popen("ls").read())
-	command = "python knock.py "+domain +" | tee -a "+basePath+"/"+fileloc+filename
-	print(command)
-	knockPy = os.popen(command).read()
-	os.chdir(basePath)
-"""
+		os.mkdir(os.path.join(app.config["cachePath"], folderName))
+	
+	return os.path.join(app.config["cachePath"], folderName)
 
 """
 def checkVirtualHosts(): #check for proper automation
@@ -49,20 +43,21 @@ def checkVirtualHosts(): #check for proper automation
 	print(VHosts)
 """
 
-def subfinder(domain):
-	print("\n\nRunning Subfinder")
-	print("---------------------")
-	command = "subfinder --silent -d "+ domain + " | anew " + fileloc + "subDomains.txt"       #--silent flag to only show the subdomains as the output
-	subfinder = os.popen(command).read()            # simply append the to the previous output, no processing required 
-	print(subfinder)
+# def subfinder(domain):
+# 	print("\n\nRunning Subfinder")
+# 	print("---------------------")
+# 	subFinderFile = os.path.join()
+# 	command = "subfinder --silent -d "+ domain + " | anew " + fileloc + "subDomains.txt"       #--silent flag to only show the subdomains as the output
+# 	subfinder = os.popen(command).read()            # simply append the to the previous output, no processing required 
+# 	print(subfinder)
 
 
-def assetfinder(domain):
-	print("\n\nRunning AssetFinder")
-	print("-----------------------")
-	command = "assetfinder " + domain + " | anew " + fileloc + "subDomains.txt"
-	assetfinder = os.popen(command).read()          # simply append the to the previous output, no processing required
-	print(assetfinder)
+# def assetfinder(domain):
+# 	print("\n\nRunning AssetFinder")
+# 	print("-----------------------")
+# 	command = "assetfinder " + domain + " | anew " + fileloc + "subDomains.txt"
+# 	assetfinder = os.popen(command).read()          # simply append the to the previous output, no processing required
+# 	print(assetfinder)
 
 
 # now get the subdomains approved by the user
@@ -84,22 +79,46 @@ def findHttpDomains(fileloc,subDomainFilename):
 
 
 
-def findJSFiles(httpDomainsFile,basePath):  #fileloc is the baseDir
+def findJSFiles(httpDomainsFileName,basePath):  #fileloc is the baseDir
 	# global httpDomainsFile
 	print("Searching for JS FIles")
 	print("----------------------")
-	command = "cat "+ httpDomainsFile +" | subjs | anew " + basePath + "JSfiles.txt"  # => lists out all the JS files linked to the domains in the filename.txt
+	httpDomainsFileLocation = os.path.join(basePath, httpDomainsFileName)
+	# command = "cat "+ httpDomainsFile +" | subjs | anew " + basePath + "JSfiles.txt"  # => lists out all the JS files linked to the domains in the filename.txt
+	command = f"cat {httpDomainsFileLocation} | subjs | anew {os.path.join(basePath, 'JSfiles.txt')}"
 	JSFiles = os.popen(command).read()
 	print("now you can search manually/via a program for the JS files listed in the "+basePath+"JSfiles.txt file")
 
 
+def SecretFinder(basePath,filename):
+	print("Running Secret Finder on JS Files")
+	JSFilesLocation = os.path.join(basePath, filename)
+	JSfiles = open(JSFilesLocation).read().split("\n")
+	mainCommand = "python3 ./Tools/SecretFinder/SecretFinder.py -i '{}' -o cli >> '{}'"
+	for url in JSfiles:
+		if url != "" :
+			command = mainCommand.format(url,os.path.join(basePath,"JSFinder.txt"))
+			print(command)
+			op = os.popen(command).read()
+
 #---------------------------------------------------------------------------------------
 
 
-def checkSubTakeover(httpDomainsFile,basePath): #subzy
+# def checkSubTakeover(httpDomainsFileName,basePath): #subzy
+# 	print("Checking Subdomain Takeover")
+# 	print("---------------------------")
+# 	httpDomainsFileLocation = os.path.join(basePath, httpDomainsFileName)
+# 	# command = "subzy --targets " + httpDomainsFile + " > " + basePath + "/subDomainTakeover.txt"
+# 	command = f"subzy --targets {httpDomainsFileLocation} > {os.path.join(basePath,'subDomainTakeover.txt')}"
+# 	takeover = os.popen(command).read()
+# 	print(takeover)
+
+def checkSubTakeover(httpDomainsFileName,basePath): #subzy
 	print("Checking Subdomain Takeover")
 	print("---------------------------")
-	command = "subzy --targets " + httpDomainsFile + " > " + basePath + "/subDomainTakeover.txt"
+	httpDomainsFileLocation = os.path.join(basePath, httpDomainsFileName)
+	# command = "subzy --targets " + httpDomainsFile + " > " + basePath + "/subDomainTakeover.txt"
+	command = f"subzy run --targets {httpDomainsFileLocation} --output {os.path.join(basePath,'subDomainTakeover.json')}"
 	takeover = os.popen(command).read()
 	print(takeover)
 
@@ -118,67 +137,126 @@ def checkSubTakeover(httpDomainsFile,basePath): #subzy
 	
 #----------------------------------------------------------------------------------------
 
-def naabu(subDomainsFile,domain,basePath):
+def naabu(subDomainsFileName,domain,basePath):
 	print("Doing basic Port scan using Naabu")
 	print("---------------------------------")
-	file = open(subDomainsFile,"r")
-	for currDomain in file:
-		if domain not in currDomain:
-			continue
-		print("\n",currDomain)
-		currDomain = currDomain.strip("\n")
-		command = "naabu -host " + currDomain + " >> " + basePath + "portScan.txt"
-		op = os.popen(command).read()
-		command = "echo '-' >> " + basePath + "portScan.txt"
-		op = os.popen(command).read()
-		print("----------------------------------------------------")
-	file.close()
+	subDomainFileLocation = os.path.join(basePath,subDomainsFileName)
+	portScanFile = os.path.join(basePath, "portScan.txt")
+	# file = open(subDomainFileLocation,"r")
+	# for currDomain in file:
+	# 	if domain not in currDomain:
+	# 		continue
+	# 	print("\n",currDomain)
+	# 	currDomain = currDomain.strip("\n")
+	# 	# command = "naabu -host " + currDomain + " >> " + portScanFile
+	# 	# op = os.popen(command).read()
+	# 	# command = "echo '-' >> " + portScanFile
+	# 	# op = os.popen(command).read()
+	# 	print("----------------------------------------------------")
+	# file.close()
+	command = f"naabu -l {subDomainFileLocation} > {portScanFile}"
+	op = os.popen(command).read()
+
+
+def parseNaabuOutput(basePath):
+	print(os.listdir(os.path.join(basePath)))
+	if not os.path.isfile(os.path.join(basePath,"portScan.txt")):
+		print("[-] File Not Found for naabu parsing")
+		return
+	print("[+] Parsing Naabu Output")
+	isOK, errorMsg = Tools.naabuParser.parseNaabu(basePath)
+	if isOK:
+		print("[+] Successfully Parsed Naabu Output")
 
 #---------------------------------------------------------------------------------------
 
 def waybackurls(domain,basePath):
 	print("Running WayBackUrls")
 	print("-------------------")
-	command = "printf " + domain + " | waybackurls > " + basePath + "waybackurls.txt"
-	print(command)
-	op = os.popen(command).read()
-
-
-def findSubdomains(domain):
-	#have written to the file subDomains.txt
-	subfinder(domain)
-	assetfinder(domain)
-	# return the contents of the file fileloc+"subDomains.txt"
-	with open(fileloc+"subDomains.txt") as f:
-		subdomains = f.read().split("\n")
-	return(subdomains)
-
-def detectWAF(httpDomainsFile,basePath):
-	print("detecting WAF using wafw00f")
-	command = "wafw00f -i '{}' -o '{}wafDetails.txt' ".format(httpDomainsFile,basePath)
-	# command = "wafw00f -i " + httpDomains + " -o " + basePath + "wafDetails.txt"
+	waybackFile = os.path.join(basePath, "waybackurls.txt")
+	# command = "printf " + domain + " | waybackurls > " + waybackFile
+	command = f"printf '{domain}' | waybackurls > {waybackFile}"
 	print(command)
 	op = os.popen(command).read()
 
 
 def filterWayback(basePath,filename):
 	print("making filtered outputs of waybackURLS")
-	command = "bash ./Tools/waybackFilter.sh '{}' '{}'".format(basePath,filename)
+	command = "bash ./Tools/waybackFilter.sh '{}' '{}'".format(os.path.join(basePath,"./"),filename)
+	print(command)
+	op = os.popen(command).read()
+#---------------------------------------------------------------------------------------
+
+
+# def findSubdomains(domain):
+# 	#have written to the file subDomains.txt
+# 	subfinder(domain)
+# 	assetfinder(domain)
+# 	# return the contents of the file fileloc+"subDomains.txt"
+# 	with open(fileloc+"subDomains.txt") as f:
+# 		subdomains = f.read().split("\n")
+	# return(subdomains)
+
+
+# def detectWAF(httpDomainsFileName,basePath):
+# 	print("detecting WAF using wafw00f")
+# 	httpDomainsFileLocation = os.path.join(basePath,httpDomainsFileName)
+# 	# command = "wafw00f -i '{}' -o '{}wafDetails.txt' ".format(httpDomainsFileLocation,basePath)
+# 	# command = "wafw00f -i " + httpDomains + " -o " + basePath + "wafDetails.txt"
+# 	command = f"wafw00f -i {httpDomainsFileLocation} -o {os.path.join(basePath, 'wafDetails.txt')}"
+# 	print(command)
+# 	op = os.popen(command).read()
+
+def detectWAF(httpDomainsFileName,basePath):
+	print("detecting WAF using wafw00f")
+	httpDomainsFileLocation = os.path.join(basePath,httpDomainsFileName)
+	# command = "wafw00f -i '{}' -o '{}wafDetails.txt' ".format(httpDomainsFileLocation,basePath)
+	# command = "wafw00f -i " + httpDomains + " -o " + basePath + "wafDetails.txt"
+	command = f"wafw00f -i {httpDomainsFileLocation} -f json -o {os.path.join(basePath, 'wafDetails.json')}"
 	print(command)
 	op = os.popen(command).read()
 
+#-----------------------------------------------------------------------------------------------------
 
-#
-def SecretFinder(basePath,filename):
-	print("Running Secret Finder on JS Files")
-	JSfiles = open(basePath+filename).read().split("\n")
-	mainCommand = "python3 ./Tools/SecretFinder/SecretFinder.py -i '{}' -o cli >> '{}JSFinder.txt'"
-	for url in JSfiles:
-		if url != "" :
-			command = mainCommand.format(url,basePath)
-			print(command)
-			op = os.popen(command).read()
 
+def detectTechnologies(httpDomainsFileName,basePath):
+	#make a cURL request or run webanalyse tool on the domain one by one and store their output
+	makeDir = os.popen("mkdir -p '{}technologies/'".format(basePath))
+	cmd = "wappalyzer '{}' --pretty > '{}'"
+	httpDomainsFileLocation = os.path.join(basePath,httpDomainsFileName)
+	for httpDomain in open(httpDomainsFileLocation):
+		command = cmd.format(
+			httpDomain,
+			os.path.join(basePath,
+				"technologies", 
+				utility.getFileNameFromUrl(httpDomain, extension=".json")
+				)
+			)
+		print(command)
+		op = os.popen(command).read()
+
+
+def mergingTechnologies(basePath, folderName="technologies"):
+	if not os.path.isdir(os.path.join(basePath,folderName)):
+		print("[-] Invalid Path for merging technologies")
+		return()
+	print("[+] Merging Technologies ")
+	Tools.merging_technologies.mergeTechnologies(os.path.join(basePath,folderName))
+
+#-----------------------------------------------------------------------------------------------------
+
+def takeSS(httpDomainsFile,basePath):
+	os.mkdir(basePath+"images/")
+	imgPath = basePath+"images/"
+	oriCmd = "screenshoteer --url '{}' --file '{}{}.png' "
+	with open(httpDomainsFile) as file:
+		for line in file:
+			url = line.strip("\n")
+			cmd = oriCmd.format( url, imgPath, "_".join(url.split("/")) )
+			op = os.popen(cmd).read()
+
+
+#-----------------------------------------------------------------------------------------------------
 
 
 #store the domains to be further processed in a file and pass that file path to findHttpDomains
@@ -192,23 +270,34 @@ def completeProcess(domain=None,todo=None,subDomains=None,httpDomains=None):
 
 	if todo != None:
 		if subDomains != None:
-			subDomainsFile = createFile(subDomains,basePath,"subDomains.txt")
+			subDomainsFileName = "subDomains.txt"
+			createFile(subDomains,basePath,subDomainsFileName)
 			if "portScan" in todo:
-				naabu(subDomainsFile,domain,basePath)
+				naabu(subDomainsFileName,domain,basePath)
+				parseNaabuOutput(basePath)
 	
 		if httpDomains!=None:
-			httpDomainsFile = createFile(httpDomains,basePath,"httpDomains.txt")  #returns the filename having only domains with http server running
+			httpDomainsFileName = "httpDomains.txt"
+			createFile(httpDomains,basePath,httpDomainsFileName)  #returns the filename having only domains with http server running
+			# parseHttpDomainsFile
 			if "JSFiles" in todo:
-				findJSFiles(httpDomainsFile,basePath)
+				findJSFiles(httpDomainsFileName,basePath)
 				SecretFinder(basePath,"JSfiles.txt")
 			if "subTakeover" in todo:
-				checkSubTakeover(httpDomainsFile,basePath)
+				checkSubTakeover(httpDomainsFileName,basePath)
 			if "wafDetect" in todo:
 				print("trying WAF detection")
-				detectWAF(httpDomainsFile,basePath)
+				detectWAF(httpDomainsFileName,basePath)
+			if "detectTechnology" in todo:
+				print("trying technology detection")
+				detectTechnologies(httpDomainsFileName,basePath)
+				mergeTechnologies(basePath)
+			if "takeSS" in todo:
+				print("Taking Screnshots")
+				takeSS(httpDomainsFileName,basePath)
 	
 	#now zip the particular folder and send it to the user
-	zipFolder(basePath,domain)
+	# zipFolder(basePath,domain)
 
 
 
@@ -227,7 +316,7 @@ def getAllPaths(basePath):
 def zipFolder(basePath,domain):
 	file_paths = getAllPaths(basePath)
 	length = len(basePath)
-	with ZipFile(basePath + domain.split(".")[0].lower() + ".zip",'w') as zip:
+	with ZipFile(os.path.join(app.config["cachePath"], utility.getFolderNameFromDomain(domain) + ".zip"),'w') as zip:
 		# writing each file one by one
 		for file in file_paths:
 			filename = file[length:]
@@ -235,11 +324,11 @@ def zipFolder(basePath,domain):
 
 
 def createFile(listOfString,basePath,filename):
-	print("creating file",basePath+filename)
-	file = open(basePath+filename,"w")
-	file.write("\n".join(listOfString))
+	print("creating file",os.path.join(basePath,filename))
+	file = open(os.path.join(basePath,filename),"w")
+	file.write( utility.escapeOSCI("\n".join(listOfString),['\n']) )
 	file.close()
-	return(basePath+filename)
+	return()
 
 
 

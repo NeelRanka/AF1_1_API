@@ -1,1 +1,4 @@
 *.pyc
+/Websites/*
+!/Websites/ReadMe.md
+/Websites*

@@ -2,18 +2,19 @@ import json
 import os
 
 # filename = "/home/yash/hacking/portScanCelo.txt"
-filePath = "/home/yash/hacking/"
-fName = "portScanCelo.txt"
-filename = filePath+fName
+#filePath = "/home/yash/hacking/"
+#fName = "portScanCelo.txt"
+#filename = filePath+fName
 
 
 #isOK,errMsg
-def parseNaabu(filePath,filename):
+def parseNaabu(filePath,filename="portScan.txt"):
 	mainJson={}
-	if not os.path.isfile(filePath+filename):
+	if not os.path.isfile(os.path.join(filePath,filename)):
+		print("File Not Found")
 		return(False, "Input File Not Found")
 
-	with open(filePath+filename) as file:
+	with open(os.path.join(filePath,filename)) as file:
 		for line in file:
 			parts=line.strip("\n").split(":")
 			try:
@@ -38,14 +39,14 @@ def parseNaabu(filePath,filename):
 	# 	print(i)
 	# print(len(l))
 
-	mainJson = {item[0]:item[1] for item in l}
+	mainJson = {item[0]:[item[1],item[2]] for item in l}
 	for i in mainJson.keys():
 		print(i,mainJson[i])
 
 
-	with open(filePath+"parsedNaabu.json","w") as file:
+	with open(os.path.join(filePath,"parsedNaabu.json"),"w") as file:
 		json.dump(mainJson,file)
 	return(True, "")
 
 
-parseNaabu("/home/yash/hacking/", "portScanCelo.txt")
+#parseNaabu("/home/yash/Desktop/GLIDE/sampleData/", "portScanCelo.txt")

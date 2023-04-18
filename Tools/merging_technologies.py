@@ -36,4 +36,4 @@ def mergeTechnologies(location):
 		json.dump(finalJsonDict,outputFile)
 
 
-mergeTechnologies("/home/yash/Downloads/vupune/technologies")
+#mergeTechnologies("/home/yash/Desktop/GLIDE/sampleData/technologies")

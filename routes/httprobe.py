@@ -1,4 +1,5 @@
-from ..server import app
+from __main__ import app
+# from ..server import app
 from flask import jsonify,request
 from .utility import *
 
@@ -9,5 +10,6 @@ def httprobeRoute():
 	# domain = ["vupune.ac.in"]
 	domain = request.json['domains']
 	result = httprobe(domain)
+	results = list(set(result))
 	print("httprobe : ",result)
 	return(jsonify({"urls":result}))

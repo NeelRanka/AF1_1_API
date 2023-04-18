@@ -1,4 +1,5 @@
-from ..server import app
+from __main__ import app
+# from ..server import app
 from flask import jsonify,render_template,request,redirect
 import os
 from .utility import *
