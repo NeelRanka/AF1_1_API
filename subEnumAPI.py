@@ -5,8 +5,9 @@ import sys
 import uuid
 from flask import make_response,jsonify
 from zipfile import ZipFile
-import Tools.merging_technologies
+import Tools.merging_technologies as merging_technologies
 import Tools.naabuParser
+import Tools.parseHttpDomains as httpDomainParser
 import utility
 from __main__ import app
 
@@ -65,11 +66,11 @@ def checkVirtualHosts(): #check for proper automation
 
 #-----------------------------------------------------------------------------------
 
-def findHttpDomains(fileloc,subDomainFilename):
+def findHttpDomains(fileloc,subDomainFileName):
 	# global fileloc
 	#print("in httpDomains")
 	httpDomainsFile = fileloc + "httpDomains.txt"
-	command = "cat " + fileloc + subDomainFilename + " | grep "+ domain +" | httprobe | anew " + httpDomainsFile
+	command = "cat " + fileloc + subDomainFileName + " | grep "+ domain +" | httprobe | anew " + httpDomainsFile
 	print(command)
 	os.popen(command).read()
 	print("HttProbed and created the file :" , httpDomainsFile)
@@ -221,10 +222,12 @@ def detectWAF(httpDomainsFileName,basePath):
 
 def detectTechnologies(httpDomainsFileName,basePath):
 	#make a cURL request or run webanalyse tool on the domain one by one and store their output
-	makeDir = os.popen("mkdir -p '{}technologies/'".format(basePath))
+	
+	makeDir = os.popen("mkdir -p '{}'".format(os.path.join(basePath, "technologies/"))).read()
 	cmd = "wappalyzer '{}' --pretty > '{}'"
 	httpDomainsFileLocation = os.path.join(basePath,httpDomainsFileName)
 	for httpDomain in open(httpDomainsFileLocation):
+		httpDomain = httpDomain.strip("\n")
 		command = cmd.format(
 			httpDomain,
 			os.path.join(basePath,
@@ -260,41 +263,49 @@ def takeSS(httpDomainsFile,basePath):
 
 
 #store the domains to be further processed in a file and pass that file path to findHttpDomains
-def completeProcess(domain=None,todo=None,subDomains=None,httpDomains=None):
+def completeProcess(domain=None,options=None,subDomains=None,httpDomains=None):
 	basePath = initialize(domain)
 	if domain!=None:
-		if "wayBackUrls" in todo:
+		if "wayBackUrls" in options:
 			waybackurls(domain,basePath)
 			filterWayback(basePath,"waybackurls.txt")
 		#perform GF-patterns on waybackURLS output
 
-	if todo != None:
+	if options != None:
 		if subDomains != None:
-			subDomainsFileName = "subDomains.txt"
-			createFile(subDomains,basePath,subDomainsFileName)
-			if "portScan" in todo:
-				naabu(subDomainsFileName,domain,basePath)
-				parseNaabuOutput(basePath)
+			if len(subDomains) > 0:
+				subDomainsFileName = "subDomains.txt"
+				overwrite=False
+				if "overwriteSubDomains" in options:
+					overwrite=True
+				createFile(subDomains,basePath,subDomainsFileName, overwrite=overwrite)
+				if "portScan" in options:
+					naabu(subDomainsFileName,domain,basePath)
+					parseNaabuOutput(basePath)
 	
 		if httpDomains!=None:
-			httpDomainsFileName = "httpDomains.txt"
-			createFile(httpDomains,basePath,httpDomainsFileName)  #returns the filename having only domains with http server running
-			# parseHttpDomainsFile
-			if "JSFiles" in todo:
-				findJSFiles(httpDomainsFileName,basePath)
-				SecretFinder(basePath,"JSfiles.txt")
-			if "subTakeover" in todo:
-				checkSubTakeover(httpDomainsFileName,basePath)
-			if "wafDetect" in todo:
-				print("trying WAF detection")
-				detectWAF(httpDomainsFileName,basePath)
-			if "detectTechnology" in todo:
-				print("trying technology detection")
-				detectTechnologies(httpDomainsFileName,basePath)
-				mergeTechnologies(basePath)
-			if "takeSS" in todo:
-				print("Taking Screnshots")
-				takeSS(httpDomainsFileName,basePath)
+			if len(httpDomains) > 0:
+				httpDomainsFileName = "httpDomains.txt"
+				overwrite=False
+				if "overwriteHttpDomains" in options:
+					overwrite=True
+				createFile(httpDomains,basePath,httpDomainsFileName, overwrite=overwrite)  #returns the filename having only domains with http server running
+				httpDomainParser.parseHttpDomainsFile(basePath)
+				if "JSFiles" in options:
+					findJSFiles(httpDomainsFileName,basePath)
+					SecretFinder(basePath,"JSfiles.txt")
+				if "subTakeover" in options:
+					checkSubTakeover(httpDomainsFileName,basePath)
+				if "wafDetect" in options:
+					print("trying WAF detection")
+					detectWAF(httpDomainsFileName,basePath)
+				if "detectTechnology" in options:
+					print("trying technology detection")
+					detectTechnologies(httpDomainsFileName,basePath)
+					mergingTechnologies(basePath)
+				if "takeSS" in options:
+					print("Taking Screnshots")
+					takeSS(httpDomainsFileName,basePath)
 	
 	#now zip the particular folder and send it to the user
 	# zipFolder(basePath,domain)
@@ -323,8 +334,13 @@ def zipFolder(basePath,domain):
 			zip.write(file,filename)
 
 
-def createFile(listOfString,basePath,filename):
+def createFile(listOfString,basePath,filename,overwrite=False):
 	print("creating file",os.path.join(basePath,filename))
+	if os.path.isfile(os.path.join(basePath,filename)):
+		print("[INFO]: File already present")
+		if not overwrite:
+			print("[INFO]: using already present file")
+			return
 	file = open(os.path.join(basePath,filename),"w")
 	file.write( utility.escapeOSCI("\n".join(listOfString),['\n']) )
 	file.close()

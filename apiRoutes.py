@@ -3,7 +3,7 @@ import os, json
 from flask import Flask,request,jsonify
 import utility
 
-@app.route("/checkCName",methods=["GET"])
+@app.route("/getTld",methods=["GET"])
 def checkCompanyName():
 	companyName = request.args.get("companyName")
 	if companyName == None:
@@ -21,17 +21,25 @@ def checkCompanyName():
 		listOfDomains = list(setOfDomains)
 		cNameDetails = utility.getTldBasedData(listOfDomains)
 		return utility.Response (code=200, 
-			additionalPayloadData= {"data": jsonify(cNameDetails)}
+			additionalPayloadData= {"data": (cNameDetails)}
 			)
 	return utility.Response(code=404, msg="File Not Found")
 	
 
 
-@app.route("/checkTLD", methods=["GET"])
+@app.route("/checkTld", methods=["GET"])
 def checkTldPresence():
 	tldValue = request.args.get("tld")
-	if tld == None:
+	if tldValue == None:
 		return utility.Response(code=400 , msg="tld not provided")
+	else:
+		folders = os.listdir(app.config["cachePath"])
+		tldFolderName = utility.getFolderNameFromDomain(tldValue)
+		if tldFolderName in folders:
+			return utility.Response(code=200, msg="Tld details present")
+		else:
+			return utility.Response(code=404, msg="Tld details not present")
+
 
 
 #return ports data for all subdomains for a given tld
@@ -40,8 +48,8 @@ def getPortsRoute():
 	tld=request.args.get("tld")
 	
 	if not tld:
-		print("[ERROR] TLD + SubDomain Combo not provided")
-		return utility.Response(code=400 , msg="[ERROR] TLD + SubDomain Combo not provided")
+		print("[ERROR] TLD not provided")
+		return utility.Response(code=400 , msg="[ERROR] TLD not provided")
 	
 	# if tld not in folder:
 	# 	print("[ERROR] TLD Data Not Found")
@@ -68,13 +76,13 @@ def getPortsRoute():
 	# return tldJson[subdomain]
 
 
-@app.route("/subDomain", methods=['GET'])
+@app.route("/getSubdomains", methods=['GET'])
 def getSubdomainData():
 	tld=request.args.get("tld")
 	
 	if not tld:
-		print("[ERROR] TLD + SubDomain Combo not provided")
-		return utility.Response(code=400 , msg="[ERROR] TLD + SubDomain Combo not provided")
+		print("[ERROR] TLD not provided")
+		return utility.Response(code=400 , msg="[ERROR] TLD not provided")
 	
 	# if tld not in folder:
 	# 	print("[ERROR] TLD Data Not Found")
@@ -93,19 +101,19 @@ def getSubdomainData():
 	else:
 		return utility.Response(code=404, msg="Subdomain details not found, kindly perform action for the given tld")
 
-		while "" in subdomains:
-			print("removing Empty Quote")
-			subdomains.remove('')
+	while "" in subdomains:
+		print("removing Empty Quote")
+		subdomains.remove('')
+	
+	return utility.Response(code=200, additionalPayloadData={"data": subdomains, "length": len(subdomains)})
 
-		return utility.Response(code=200, additionalPayloadData={"data": subdomains, "length": len(subdomains)})
 
-
-@app.route("/httpDomains", methods=["GET"])
+@app.route("/getHttpDomains", methods=["GET"])
 def getHttpDomainsJsonData():
 	tld=request.args.get("tld")
 	if not tld:
-		print("[ERROR] TLD + SubDomain Combo not provided")
-		return utility.Response(code=400 , msg="[ERROR] TLD + SubDomain Combo not provided")
+		print("[ERROR] TLD not provided")
+		return utility.Response(code=400 , msg="[ERROR] TLD not provided")
 	
 	# if tld not in folder:
 	# 	print("[ERROR] TLD Data Not Found")
@@ -128,12 +136,12 @@ def getHttpDomainsJsonData():
 
 
 
-@app.route("/subDomainTakeoverData", methods=["GET"])
+@app.route("/getSubdomainTakeoverData", methods=["GET"])
 def getSubDomainTakeoverData():
 	tld=request.args.get("tld")
 	if not tld:
-		print("[ERROR] TLD + SubDomain Combo not provided")
-		return utility.Response(code=400 , msg="[ERROR] TLD + SubDomain Combo not provided")
+		print("[ERROR] TLD not provided")
+		return utility.Response(code=400 , msg="[ERROR] TLD not provided")
 	
 	# if tld not in folder:
 	# 	print("[ERROR] TLD Data Not Found")
@@ -164,8 +172,8 @@ def getSubDomainTakeoverData():
 def getWafDetails():
 	tld=request.args.get("tld")
 	if not tld:
-		print("[ERROR] TLD + SubDomain Combo not provided")
-		return utility.Response(code=400 , msg="[ERROR] TLD + SubDomain Combo not provided")
+		print("[ERROR] TLD not provided")
+		return utility.Response(code=400 , msg="[ERROR] TLD not provided")
 	
 	# if tld not in folder:
 	# 	print("[ERROR] TLD Data Not Found")
@@ -194,8 +202,8 @@ def getWebTechGetRoute():
 	tld=request.args.get("tld")
 	subdomain = request.args.get("subdomain")
 	if not tld or not subdomain:
-		print("[ERROR] TLD + SubDomain Combo not provided")
-		return utility.Response(code=400 , msg="[ERROR] TLD + SubDomain Combo not provided")
+		print("[ERROR] TLD and subdomain not provided")
+		return utility.Response(code=400 , msg="[ERROR] TLD and subdomain not provided")
 	
 	# if tld not in folder:
 	# 	print("[ERROR] TLD Data Not Found")
@@ -213,30 +221,32 @@ def getWebTechGetRoute():
 		technologyDetails = {}
 		webServerUrl = f"http://{subdomain}"
 		filename = utility.getFileNameFromUrl(webServerUrl) + ".json"
-
+		print("Looking for ", filename)
 		if filename in technologyFiles:
 			try:
 				with open(os.path.join(technologyPath, filename)) as file:
 					techFile = json.load(file)
 					print(techFile.keys())
-					technologyDetails[webServerUrl] = techFile["technologies"]
+					if "technologies" in techFile:
+						technologyDetails[webServerUrl] = techFile["technologies"]
 			except Exception as e:
-				print("error opening web Tech File")
-				return utility.Response(code=502, msg="couldnt fetch Web Technology details")
+				print("error opening web Tech File",e)
+				# return utility.Response(code=502, msg="couldnt fetch Web Technology details")
 			
 		
 		webServerUrl = f"https://{subdomain}"
 		filename = utility.getFileNameFromUrl(webServerUrl) + ".json"
-
+		print("Looking for ", filename)
 		if filename in technologyFiles:
 			try:
 				with open(os.path.join(technologyPath, filename)) as file:
 					techFile = json.load(file)
 					print(techFile.keys())
-					technologyDetails[webServerUrl] = techFile["technologies"]
+					if "technologies" in techFile:
+						technologyDetails[webServerUrl] = techFile["technologies"]
 			except Exception as e:
-				print("error opening web Tech File")
-				return utility.Response(code=502, msg="couldnt fetch Web Technology details")
+				print("error opening web Tech File",e)
+				# return utility.Response(code=502, msg="couldnt fetch Web Technology details")
 
 	else:
 		return utility.Response(code=404, msg="Web Technology details not found, kindly perform action for the given tld")

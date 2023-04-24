@@ -82,8 +82,8 @@ function subDomainsFinder()
 			document.getElementById('checkedlinks').innerHTML = renderAsCheckBoxAndLinks(jsonData['checked'], "checked", "links");
 			document.getElementById('uncheckedlinks').innerHTML = renderAsCheckBoxAndLinks(jsonData['unchecked'], "", "links");
 			
-			document.getElementById("checkedLinksButton").classList.remove("disabled")
-			document.getElementById("uncheckedLinksButton").classList.remove("disabled")
+			// document.getElementById("checkedLinksButton").classList.remove("disabled")
+			// document.getElementById("uncheckedLinksButton").classList.remove("disabled")
 			document.getElementById("httprobeButton").hidden=false
 
 			document.getElementById("checkedLinksCount").innerHTML = `(${jsonData["checked"].length})`

@@ -2,14 +2,18 @@
 from __main__ import app
 from flask import jsonify,request
 from .utility import *
-
+import utility as mainUtility
 
 @app.route("/findSubDomains",methods=['GET','POST'])
 def findSubDomains():
 	if request.method == "GET":
 		return("OK")
-	domain = "vupune.ac.in"
-	domain = request.json['domain']
+	# domain = "vupune.ac.in"
+	if not request.json:
+		return(utility.Response(code=400, msg="No data sent"))
+	domain = request.json.get("domain")
+	if domain == None:
+		return(utility.Response(code=400, msg="Domain not specified"))
 	print("received subdomains request for ",domain)
 	#do error checking
 	subdomains = []

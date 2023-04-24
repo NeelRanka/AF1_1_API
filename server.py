@@ -44,7 +44,7 @@ def links():
 
 @app.route("/Attack",methods=['GET'])
 def HTML():
-	return( render_template("index (1).html") )
+	return( render_template("indexMain.html") )
 
 
 @app.route("/Attack",methods=["POST"])
@@ -62,6 +62,7 @@ def Attack():
 		if "options" in request.json:
 			options = request.json["options"]
 			print(options)
+
 	if domain:
 		completeProcess(domain,options,subDomains,httpDomains)
 		return( returnResponse(code=200, msg="OK",data=domain) )

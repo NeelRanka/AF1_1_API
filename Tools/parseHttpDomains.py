@@ -29,9 +29,8 @@ def parseHttpDomainsFile(inputFilePath, inputFileName="httpDomains.txt", outputF
 		json.dump(httpDomainDict, file)
 
 
-for item in dirs:
-	if os.path.isdir(os.path.join(path,item)):
-		print("checking tld ", item)
-		tldPath = os.path.join(path, item)
-		print(tldPath)
-		parseHttpDomains(tldPath)
+#for item in dirs:
+#	if os.path.isdir(os.path.join(path,item)):
+#		tldPath = os.path.join(path, item)
+#		print(tldPath)
+#		parseHttpDomains(tldPath)

@@ -1,11 +1,13 @@
 from flask import jsonify,request, make_response
+import os
+from __main__ import app
 
 def getFolderNameFromDomain(domain):
 	folderName = domain.replace(".","_").replace("/","_").replace(":","_")
 	return folderName
 
 def getFileNameFromUrl(url, extension = None):
-	fileName = url.replace("/","_")#.replace(".","_").replace(":","_")
+	fileName = url.replace("/","_").replace(".","_").replace(":","_")
 	if extension:
 		fileName = fileName+extension
 	return fileName
@@ -15,7 +17,7 @@ def getTldBasedData(tldList):
 	cachedFolders = os.listdir(app.config["cachePath"])
 	document = []
 	for tld in tldList:
-		if utility.getFolderNameFromDomain(tld) in cachedFolders:
+		if getFolderNameFromDomain(tld) in cachedFolders:
 			document.append(
 				{
 					"tld": tld,

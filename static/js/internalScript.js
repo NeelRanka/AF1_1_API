@@ -60,6 +60,9 @@ function setDomain()
 function subDomainsFinder() 
 {
 	// get the links from the server
+
+	document.getElementById("mainLoader").hidden=false
+
 	var xhr = new XMLHttpRequest();
 	xhr.open('POST', url+'/findSubDomains');
 	xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
@@ -79,22 +82,18 @@ function subDomainsFinder()
 			unchecked = jsonData["unchecked"]
 			console.log("checked is ",checked)
 
-            document.getElementById("loader").style.display = "none";
             document.getElementById("content").style.display = "block";
-
+            document.getElementById("subdomainsRelated").style.display = "block";
+            document.getElementById("row2").style.display = "block";
+            // document.getElementById("row1").hidden=false
 			document.getElementById('checkedlinks').innerHTML = renderAsCheckBoxAndLinks(jsonData['checked'], "checked", "links");
 			document.getElementById('uncheckedlinks').innerHTML = renderAsCheckBoxAndLinks(jsonData['unchecked'], "", "links");
 			
-			document.getElementById("checkedLinksButton").classList.remove("disabled")
-			document.getElementById("uncheckedLinksButton").classList.remove("disabled")
 			document.getElementById("httprobeButton").hidden=false
+			document.getElementById("mainLoader").hidden=true
 
 			document.getElementById("checkedLinksCount").innerHTML = `(${jsonData["checked"].length})`
 			document.getElementById("uncheckedLinksCount").innerHTML = `(${jsonData["unchecked"].length})`
-
-			// var wayBackUrlsbutton = "<button onclick='waybackurls()' class='btn btn-primary m-1' >WayBackUrls</button>"
-			// var portScanbutton = "<button onclick='portScan()' class='btn btn-primary m-1' >Port Scan</button>"
-			// var httprobe = "<button onclick='httprobe()' class='btn btn-primary'>HTTPROBE</button>"
 
 			// document.getElementById('checkedlinks').innerHTML += "<center>" + wayBackUrlsbutton + portScanbutton + httprobe +"</center>"
 			document.getElementById('checkedlinks').innerHTML += "<br>"
@@ -133,6 +132,9 @@ function getCheckedItems(name)
 
 function httprobe() 
 {
+	
+	document.getElementById("httpServerLoader").hidden = false  // show the loading icon
+
 	checkedLinks = getCheckedItems("links")
 	
 	var xhr = new XMLHttpRequest();
@@ -152,11 +154,11 @@ function httprobe()
 			// console.log(renderAsCheckBoxAndLinks(jsonData['urls'],"checked"))
 			document.getElementById('http server enabled').innerHTML = renderAsCheckBoxAndLinks(jsonData['urls'], "checked", "httpLinks");
 			document.getElementById("httpServersCount").innerHTML = `(${jsonData["urls"].length})`
-			document.getElementById("httpserverenabledButton").classList.remove("disabled")
+			// document.getElementById("httpserverenabledButton").classList.remove("disabled")
 
-			// var takeSSbutton = "<button onclick='takeSS()' class='btn btn-primary m-1'> Take SS</button>" + "<br>"
-			// var JSFilesbutton = "<button onclick='JSFiles()' class='btn btn-primary m-1'> JSFIles</button>" + "<br>"
-			// var SDTObutton = "<button onclick='SubdomainTakeover()' class='btn btn-primary m-1'> SubDomain TakeOver</button>" + "<br>"
+			document.getElementById("httpServerLoader").hidden = true
+			document.getElementById("httpServer").classList.remove("blur")
+			document.getElementById("httpDomainsRelated").style.display = "block";
 
 			// document.getElementById('http server enabled').innerHTML += takeSSbutton + JSFilesbutton + SDTObutton
 		}
@@ -350,7 +352,7 @@ function sendAttackOptions()
 			document.getElementById("attackButton").classList.remove("disabled")
 		}
 	}
-	console.log(checkedLinks)
+	//console.log(checkedLinks)
 	xhr.send(JSON.stringify({ "domain":domain ,"subDomains": checkdSubDomains, "httpDomains":checkedHttpDomains, "options":checkedOptions }))	
 	alert(`attack for the domain ${domain} was successfully started ,visit /results for checking attack progress and can download the complete zip from there once finished`)
 }
